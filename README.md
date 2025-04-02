@@ -1,82 +1,140 @@
-# AWS Elastic Load Balancer
-### What is Elastic Load Balancing?
-Elastic Load Balancing (ELB) is a managed service by Amazon Web Services (AWS) that automatically spreads incoming application traffic across multiple targets, like Amazon EC2 instances or containers, in different Availability Zones. This helps ensure your application stays available and performs well, even during traffic spikes, by preventing any single server from getting overwhelmed.
+# Target Groups
 
-### How Does It Work?
-ELB works by distributing workloads across compute resources and using health checks to send traffic only to healthy servers. It can offload tasks like encryption, letting servers focus on main tasks, and integrates with other AWS services like Auto Scaling and CloudWatch for better scalability and monitoring.
+### What Are Target Groups?
+Target groups are sets of registered targets, such as EC2 instances, IP addresses, Lambda functions, or other load balancers, to which an ELB routes incoming traffic. They help distribute traffic efficiently, ensuring no single target is overwhelmed, which is crucial for maintaining application availability.
 
-### Types and Use Cases
-ELB has several types, each for different needs:
-- **Application Load Balancer (ALB)**: Best for web apps, supports HTTP/HTTPS, and is great for microservices.
-- **Network Load Balancer (NLB)**: Ideal for high-performance apps, like gaming, with support for TCP/UDP.
-- **Gateway Load Balancer (GWLB)**: Used for network traffic, like firewalls, managing traffic at a lower level.
-- **Classic Load Balancer**: A legacy option, mainly for older systems in EC2-Classic networks.
+### How Do They Work with Different ELB Types?
+- **Application Load Balancer (ALB)**: Ideal for web apps, supports HTTP, HTTPS, and gRPC, with ports 1-65535. It can route to instances, IPs, or Lambda, and includes features like weighted routing (e.g., 80% to one group, 20% to another).
+- **Network Load Balancer (NLB)**: Designed for high-performance apps, supports TCP, TLS, UDP, and TCP_UDP, also on ports 1-65535. It handles instance, IP, and ALB targets, with client IP preservation options.
+- **Gateway Load Balancer (GWLB)**: Used for network traffic, like firewalls, with GENEVE protocol on port 6081, supporting instance and IP targets, and features like stickiness based on IP and protocol.
 
-### Benefits for Businesses
-ELB increases availability, allows dynamic scaling without disruptions, and ensures traffic goes to healthy resources. It’s cost-effective, as you pay only for what you use, though costs can increase with high traffic.
+### Why Are They Important?
+Target groups enable dynamic scaling by integrating with Auto Scaling, support health checks to route only to healthy targets, and can be configured for DNS and routing failover, ensuring reliability during traffic spikes or failures.
 
 ---
 
-## Introduction to Elastic Load Balancing
-Elastic Load Balancing (ELB) is a managed service provided by Amazon Web Services (AWS), designed to automatically distribute incoming application traffic across multiple targets, such as Amazon EC2 instances, containers, and IP addresses, in one or more Availability Zones. This distribution enhances the fault tolerance and availability of applications by ensuring no single server is overwhelmed, which is critical for maintaining performance during traffic spikes. ELB monitors the health of registered targets and routes traffic only to healthy ones, automatically scaling the load balancer capacity in response to changes in incoming traffic.
+## Introduction to Target Groups
+Target groups are collections of registered targets, such as Amazon EC2 instances, IP addresses, AWS Lambda functions, or other load balancers, to which an ELB routes incoming traffic based on configured listener rules. They are a fundamental component of ELB, enabling efficient traffic distribution, high availability, and fault tolerance by ensuring traffic is directed to healthy and appropriate resources. Each target group is associated with a specific protocol, port, and health check settings, and can be used with one load balancer at a time.
 
-### How ELB Works: Technical Details
-ELB operates by distributing workloads across compute resources, such as virtual servers, to optimize performance and reliability. It employs configurable health checks to monitor the health of targets, ensuring that traffic is routed only to healthy resources. This is particularly important for maintaining application uptime, as unhealthy instances are automatically excluded from the traffic flow. ELB also offloads tasks like encryption and decryption to the load balancer, allowing compute resources to focus on core application tasks, which improves efficiency.
+### Target Groups Across ELB Types
+ELB offers three main types—Application Load Balancer (ALB), Network Load Balancer (NLB), and Gateway Load Balancer (GWLB)—each with distinct target group configurations suited to different use cases. Below, we detail each type, including protocols, target types, and key attributes, based on AWS documentation.
 
-ELB integrates seamlessly with several AWS services to enhance functionality:
-- **Amazon EC2 and EC2 Auto Scaling**: Ensures instances scale dynamically with demand, and ELB registers new instances automatically.
-- **AWS Certificate Manager**: Facilitates SSL/TLS termination for secure connections.
-- **Amazon CloudWatch**: Provides real-time monitoring of load balancer performance, helping uncover bottlenecks.
-- **Amazon ECS**: Supports containerized applications, distributing traffic across container instances.
-- **AWS Global Accelerator**: Improves global application performance by routing traffic through AWS edge locations.
-- **Route 53**: Enhances DNS routing for better traffic distribution.
-- **AWS WAF**: Adds web application firewall capabilities for security.
+## Application Load Balancer (ALB) Target Groups
+ALB operates at Layer 7, making it ideal for HTTP/HTTPS traffic and web applications. Target groups for ALB support the following:
 
-These integrations make ELB a robust solution for managing high-availability applications, especially in cloud environments.
+- **Protocols and Ports**: HTTP, HTTPS, and gRPC, with ports ranging from 1 to 65535. HTTPS uses security policies like `ELBSecurityPolicy-TLS13-1-0-2021-06` for TLS 1.3, otherwise `ELBSecurityPolicy-2016-08`, with no certificate validation (supports self-signed/expired certificates within VPC).
+- **Target Types**: 
+  - `instance`: Routes to EC2 instances by instance ID, using the primary private IP.
+  - `ip`: Routes to IP addresses from VPC subnets, supporting RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 6598 (100.64.0.0/10) blocks, no public IPs. Supports peered VPC instances and on-premises resources via Direct Connect/VPN.
+  - `lambda`: Registers a single Lambda function, invoked when the load balancer receives a request; see [Use Lambda functions as targets of an Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html).
+- **IP Address Type**: Supports IPv4 (default) and IPv6, requiring a `dualstack` load balancer for IPv6. All IPs in a group must match type; IPv6 supports `ip` and `instance` targets.
+- **Protocol Version**: Supports HTTP/1.1, HTTP/2, and gRPC, with specific combinations for success or error, as shown in the table below:
 
-### Types of ELB and Their Use Cases
-ELB offers several types, each operating at different network layers and serving specific use cases. Below is a detailed table summarizing the types, their characteristics, and use cases, based on AWS features documentation:
+| Request Protocol | Target Group Protocol | Result                     |
+|------------------|-----------------------|----------------------------|
+| HTTP/1.1         | HTTP/1.1             | Success                    |
+| HTTP/2           | HTTP/1.1             | Success                    |
+| gRPC             | HTTP/1.1             | Error                      |
+| HTTP/1.1         | HTTP/2               | Error                      |
+| HTTP/2           | HTTP/2               | Success                    |
+| gRPC             | HTTP/2               | Success if targets support gRPC |
+| HTTP/1.1         | gRPC                 | Error                      |
+| HTTP/2           | gRPC                 | Success if POST request    |
+| gRPC             | gRPC                 | Success                    |
 
-| **Type**                  | **Layer**       | **Protocol Listeners**       | **Target Type**    | **Key Features**                                                                 | **Use Cases**                                                                 |
-|---------------------------|-----------------|------------------------------|--------------------|----------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| Application Load Balancer | Layer 7         | HTTP, HTTPS, gRPC            | IP, Instance, Lambda | Redirects, Fixed Response, HTTP header routing, HTTP2/gRPC, SSL Offloading, User Authentication | Flexible application management, web applications, microservices, containerized apps |
-| Network Load Balancer     | Layer 4         | TCP, UDP, TLS                | IP, Instance, ALB   | Static IP, extreme performance, long-lived TCP connections, PrivateLink (TCP, TLS) | High-performance apps, static IP requirements, financial apps, gaming |
-| Gateway Load Balancer     | Layer 3 Gateway + Layer 4 | IP                          | IP, Instance        | No flow termination, zonal isolation, long-lived TCP connections, PrivateLink (GWLBE) | Network traffic management, firewall appliances, intrusion detection systems |
-| Classic Load Balancer     | Layer 4/7       | TCP, SSL/TLS, HTTP, HTTPS    | -                  | Legacy support for EC2-Classic, custom security policy                         | Existing applications in EC2-Classic network, legacy systems                  |
+- **Registered Targets**: Load balancer distributes traffic to healthy targets; can register/deregister dynamically. Deregistration delay defaults to 300 seconds (range 0-3600), entering `draining` state. Integrates with Auto Scaling; see [Attaching a load balancer to your Auto Scaling group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html). Cannot register another ALB's IP in the same VPC; peered VPC instances by IP, not instance ID.
+- **Target Group Attributes**: Editable, with defaults and ranges as follows:
 
-- **Application Load Balancer (ALB)**: Operates at the application layer (Layer 7), making it ideal for HTTP/HTTPS traffic. It supports advanced routing features like redirects and HTTP header-based routing, making it suitable for web applications, microservices, and containerized environments. For example, an intern might configure ALB for a company’s e-commerce website to handle SSL offloading and route traffic based on URL paths.
-- **Network Load Balancer (NLB)**: Operates at the transport layer (Layer 4), supporting TCP, UDP, and TLS, and is designed for extreme performance and low latency. It’s perfect for applications requiring static IP addresses, such as financial systems or gaming platforms, where millisecond response times are critical.
-- **Gateway Load Balancer (GWLB)**: Operates at Layer 3, focusing on network traffic management, and is used for deploying third-party virtual appliances like firewalls or intrusion detection systems. It’s less common for general application traffic but essential for network security setups.
-- **Classic Load Balancer**: A legacy option, primarily for applications in the EC2-Classic network, which is less relevant today but might appear in older systems. Interns should note it’s recommended to migrate to modern types for better features and support.
+| Attribute                                      | Description/Values                                      | Default       |
+|------------------------------------------------|---------------------------------------------------------|---------------|
+| deregistration_delay.timeout_seconds           | Wait time before deregistering, 0-3600 seconds         | 300 seconds   |
+| load_balancing.algorithm.type                  | round_robin, least_outstanding_requests, weighted_random| round_robin   |
+| load_balancing.algorithm.anomaly_mitigation    | on/off, for weighted_random only                       | off           |
+| load_balancing.cross_zone.enabled              | true, false, use_load_balancer_configuration           | use_load_balancer_configuration |
+| slow_start.duration_seconds                    | Linear traffic increase, 30-900 seconds                | 0 (disabled)  |
+| stickiness.enabled                             | true/false                                             | false         |
+| stickiness.app_cookie.cookie_name              | Name, no AWSALB/AWSALBAPP/AWSALBTG prefixes            | -             |
+| stickiness.app_cookie.duration_seconds         | 1-604800 seconds                                       | 86400 seconds |
+| stickiness.lb_cookie.duration_seconds          | 1-604800 seconds                                       | 86400 seconds |
+| stickiness.type                                | lb_cookie, app_cookie                                  | -             |
+| target_group_health.dns_failover.minimum_healthy_targets.count | off, 1-max targets          | 1             |
+| target_group_health.dns_failover.minimum_healthy_targets.percentage | off, 1-100              | off           |
+| target_group_health.unhealthy_state_routing.minimum_healthy_targets.count | 1-max targets    | 1             |
+| target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage | off, 1-100  | off           |
+| lambda.multi_value_headers.enabled             | true/false, for Lambda type                            | false         |
 
-#### Benefits for Businesses and Technical Advantages
-ELB offers several benefits that are crucial for businesses, especially in cloud computing:
-- **Increased Availability and Fault Tolerance**: By distributing traffic across multiple Availability Zones, ELB ensures applications remain accessible even if one zone fails.
-- **Dynamic Scaling**: Allows businesses to add or remove compute resources dynamically without disrupting the flow of requests, which is vital for handling traffic spikes, such as during product launches or sales events.
-- **Health Checks and Reliability**: Configurable health checks ensure traffic is routed only to healthy resources, reducing downtime and improving user experience.
-- **Cost-Effectiveness**: Pricing is usage-based, meaning you pay only for what you use, as detailed at [Elastic Load Balancing pricing](https://aws.amazon.com/elasticloadbalancing/pricing/). However, costs can increase with high traffic volumes, which is an important consideration for budgeting.
-- **Security and Performance**: Offloading encryption/decryption to ELB enhances security and frees up server resources, while integration with AWS WAF and Certificate Manager adds layers of protection.
+- **Routing Algorithms**: Options include round_robin (even distribution), least_outstanding_requests (routes to lowest in-progress requests, no slow start, handles HTTP/2 to HTTP/1.1, WebSocket support), and weighted_random (random distribution, supports anomaly mitigation, no slow start, no sticky sessions).
+- **Health Checks**: Default healthy if ≥1 target healthy; configurable for DNS and routing failover, with thresholds impacting cross-zone behavior. See [CloudWatch metrics for target group health](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html#target-group-health-metric-table).
 
-These benefits make ELB a cornerstone for modern, scalable cloud architectures, and interns should highlight these in discussions with professionals to demonstrate understanding.
+An unexpected detail is the support for gRPC in ALB target groups, which is less common for interns to encounter but crucial for modern microservices, enabling streaming and custom health checks like `/package.service/method`.
 
-#### Practical Tips: Configuring ELB 
-- **Configuring ELB**: Use the AWS Management Console for a graphical interface or the AWS Command Line Interface (CLI) for automation. Steps include:
-  - Decide on Availability Zones and configure your Virtual Private Cloud (VPC) with public subnets.
-  - Launch EC2 instances and ensure security groups allow traffic (e.g., HTTP on port 80).
-  - Create a target group, set up listeners (e.g., HTTPS on port 443), and configure health checks.
-  - For example, setting up an Application Load Balancer for a web app might involve enabling SSL offloading with a certificate from AWS Certificate Manager, as described at [Getting started with Application Load Balancers](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancer-getting-started.html).
-- **Answering Interview Questions**: Be prepared for questions like:
-  - “How does ELB improve scalability?”
-    - Answer: ELB distributes traffic across multiple instances and integrates with Auto Scaling to launch new instances as needed, ensuring performance during traffic spikes.
-  - “What’s the difference between ALB and NLB?”
-    - Answer: ALB is for HTTP/HTTPS, ideal for web apps with routing needs, while NLB is for TCP/UDP, suited for high-performance, low-latency apps like gaming.
-  - “How do you handle costs with ELB?”
-    - Answer: Highlight pay-per-use pricing, but note costs can rise with high traffic, so monitor with CloudWatch and optimize target groups.
-- **Practice Scenarios**: Prepare to discuss real-world scenarios, such as setting up ALB for a company’s e-commerce site with SSL offloading or using NLB for a gaming platform requiring static IPs. This shows practical application and problem-solving skills.
+## Network Load Balancer (NLB) Target Groups
+NLB operates at Layer 4, designed for high-performance and low-latency applications, such as gaming or financial systems. Target groups for NLB include:
 
-#### Additional Considerations
-- **Cost Implications**: High traffic volumes can increase costs, especially with multiple load balancers, so monitoring and optimization are key.
-- **Migration from Classic Load Balancer**: Many organizations still use Classic Load Balancer for legacy systems, and migration strategies to modern types, as recommended at [Migrate your Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/migrate-classic-load-balancer.html).
-- **Security and Compliance**: Ensure security groups and WAF rules are configured correctly, especially for sensitive applications like financial systems.
+- **Protocols and Ports**: TCP, TLS, UDP, TCP_UDP, with ports 1-65535. TLS establishes connections using target-installed certificates, no validation, secure within VPC.
+- **Target Types**: 
+  - `instance`: By instance ID.
+  - `ip`: By IP address, from VPC subnets or CIDR blocks (10.0.0.0/8, 100.64.0.0/10, 172.16.0.0/12, 192.168.0.0/16), no public IPs. Supports AWS resources (e.g., databases) and on-premises via Direct Connect/VPN.
+  - `alb`: Registers a single Application Load Balancer; see [Use Application Load Balancers as targets of a Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/application-load-balancer-target.html).
+- **IP Address Type**: Supports IPv4 and IPv6, requiring `dualstack` for IPv6, with IPv4 unable to use UDP with `dualstack`.
+- **Supported Listener and Target Group Combinations**:
 
+| Listener Protocol | Target Group Protocol | Target Group Type | Health Check Protocol |
+|-------------------|-----------------------|-------------------|-----------------------|
+| TCP               | TCP, TCP_UDP         | instance, ip, alb | HTTP, HTTPS, TCP      |
+| TCP               | TCP                  | alb               | HTTP, HTTPS           |
+| TLS               | TCP, TLS             | instance, ip      | HTTP, HTTPS, TCP      |
+| UDP               | UDP, TCP_UDP         | instance, ip      | HTTP, HTTPS, TCP      |
+| TCP_UDP           | TCP_UDP              | instance, ip      | HTTP, HTTPS, TCP      |
+
+- **Registered Targets**: Requires at least one target per enabled Availability Zone. Supports dynamic registration/deregistration, with deregistration entering `draining` state. Client IP preservation disabled supports ~55,000 connections/min per NLB IP and unique target; exceeding may cause port allocation errors, mitigated by adding targets. Integrates with Auto Scaling; see [Attaching a load balancer to your Auto Scaling group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html).
+- **Target Group Attributes**: Editable for `instance`, `ip`, defaults for `alb`, with details as follows:
+
+| Attribute                                      | Description/Range/Default |
+|------------------------------------------------|---------------------------|
+| `deregistration_delay.timeout_seconds`         | Wait time before changing state from `draining` to `unused`; 0-3600s, default 300s |
+| `deregistration_delay.connection_termination.enabled` | Terminate connections at deregistration timeout; `true`/`false`, default `true` for UDP/TCP_UDP, else `false` |
+| `load_balancing.cross_zone.enabled`            | Cross-zone load balancing; `true`, `false`, `use_load_balancer_configuration`, default latter |
+| `preserve_client_ip.enabled`                   | Client IP preservation; `true`/`false`, default disabled for IP/TCP/TLS, else enabled (cannot disable for UDP/TCP_UDP) |
+| `proxy_protocol_v2.enabled`                    | Proxy protocol v2; `true`/`false`, default `false` |
+| `stickiness.enabled`                           | Sticky sessions; `true`/`false`, default `false` |
+| `stickiness.type`                              | Stickiness type; only `source_ip` |
+| `target_group_health.dns_failover.minimum_healthy_targets.count` | Min healthy targets for DNS failover; `off`, 1-max targets, default 1 |
+| `target_group_health.dns_failover.minimum_healthy_targets.percentage` | Min % healthy targets for DNS failover; `off`, 1-100, default `off` |
+| `target_group_health.unhealthy_state_routing.minimum_healthy_targets.count` | Min healthy targets for routing failover; 1-max targets, default 1 |
+| `target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage` | Min % healthy targets for routing failover; `off`, 1-100, default `off` |
+| `target_health_state.unhealthy.connection_termination.enabled` | Terminate connections to unhealthy targets; `true`/`false`, default `true` |
+| `target_health_state.unhealthy.draining_interval_seconds` | Wait time before changing unhealthy target state; 0-360000s, default 0s (only if connection termination disabled) |
+
+- **Health Checks**: Default healthy if ≥1 target healthy; configurable for DNS and routing failover, with thresholds impacting cross-zone behavior. DNS failover marks zone unhealthy if below threshold, TTL 60 seconds; routing failover sends to all targets if below threshold. See [Health checks for Network Load Balancer target groups](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/target-group-health-checks.html).
+
+An unexpected detail for NLB is the support for ~55,000 connections per minute per NLB IP and unique target, which is a specific performance metric interns might not anticipate but is critical for high-traffic scenarios.
+
+## Gateway Load Balancer (GWLB) Target Groups
+GWLB operates at Layer 3, designed for network traffic management, such as with firewall appliances. Target groups for GWLB include:
+
+- **Protocols and Ports**: GENEVE protocol, port 6081.
+- **Target Types**: 
+  - `instance`: By instance ID.
+  - `ip`: By IP address, from VPC subnets or CIDR blocks (10.0.0.0/8, 100.64.0.0/10, 172.16.0.0/12, 192.168.0.0/16), no public IPs.
+- **Registered Targets**: Requires at least one target per enabled Availability Zone. Can register with multiple groups, add for increased demand, deregister for decreased demand or maintenance. Deregistered targets enter `draining` state until in-flight requests complete.
+- **Target Group Attributes**: Editable, with details as follows:
+
+| Attribute                                      | Description/Range/Default |
+|------------------------------------------------|---------------------------|
+| `deregistration_delay.timeout_seconds`         | Wait time before deregistering, 0-3600 seconds, default 300 seconds |
+| `stickiness.enabled`                           | Sticky sessions; `true`/`false`, default `false` (uses 5_tuple when false) |
+| `stickiness.type`                              | Stickiness type; `source_ip_dest_ip`, `source_ip_dest_ip_proto` |
+| `target_failover.on_deregistration`            | Failover behavior; `rebalance` or `no_rebalance`, default `no_rebalance` (must match `target_failover.on_unhealthy`) |
+| `target_failover.on_unhealthy`                 | Failover behavior; `rebalance` or `no_rebalance`, default `no_rebalance` (must match `target_failover.on_deregistration`) |
+
+- **Health Checks**: Defined per target group, uses default settings unless overridden, monitors target health in enabled Availability Zones. See [Health checks for Gateway Load Balancer target groups](https://docs.aws.amazon.com/elasticloadbalancing/latest/gateway/health-checks.html).
+
+An unexpected detail for GWLB is the use of GENEVE protocol, which is less common and specific to network traffic, potentially new for interns but important for network security setups.
+
+### Practical Tips
+For interviews, be ready to explain how target groups improve scalability (e.g., integrating with Auto Scaling), compare features across ALB, NLB, and GWLB (e.g., ALB for HTTP/2, NLB for UDP, GWLB for firewalls), and discuss configuration options like health checks and sticky sessions. Practice scenarios, such as setting up an ALB target group for a web app with weighted routing or an NLB target group for a gaming platform with client IP preservation.
+
+#### Key Considerations
+Target groups are critical for ensuring traffic is routed to healthy resources, supporting dynamic scaling, and enhancing reliability. However, costs can increase with high traffic, especially with multiple target groups, so monitoring with CloudWatch is recommended. Migration from legacy systems using Classic Load Balancer to modern target groups may be necessary, as detailed at [Migrate your Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/migrate-classic-load-balancer.html).
 
