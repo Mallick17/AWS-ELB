@@ -1,32 +1,56 @@
-# AWS Elastic Load Balancer
-Elastic Load Balancing (ELB) is a managed service provided by Amazon Web Services (AWS), designed to automatically distribute incoming application traffic across multiple targets, such as Amazon EC2 instances, containers, and IP addresses, in one or more Availability Zones. This distribution enhances the fault tolerance and availability of applications by ensuring no single server is overwhelmed, which is critical for maintaining performance during traffic spikes. ELB monitors the health of registered targets and routes traffic only to healthy ones, automatically scaling the load balancer capacity in response to changes in incoming traffic.
+# Zonal Shift
+### What is Zonal Shift?
+Zonal shift is a feature in Amazon’s Application Recovery Controller (ARC) that lets you quickly redirect traffic away from an *Availability Zone* (AZ) that’s having issues—like hardware failures, network problems, or other impairments. Instead of letting your application struggle in a failing zone, you can shift traffic to healthy AZs within the same AWS Region with a single action. This is all about keeping your service running smoothly when things go wrong.
 
-### Types of ELB
-ELB has several types, each for different needs:
-- **Application Load Balancer (ALB)**: Best for web apps, supports HTTP/HTTPS, and is great for microservices.
-- **Network Load Balancer (NLB)**: Ideal for high-performance apps, like gaming, with support for TCP/UDP.
-- **Gateway Load Balancer (GWLB)**: Used for network traffic, like firewalls, managing traffic at a lower level.
-- **Classic Load Balancer**: A legacy option, mainly for older systems in EC2-Classic networks.
+### How Zonal Shift Works
+1. **Triggering the Shift**: You initiate a zonal shift for a specific load balancer resource tied to an AZ you want to avoid. For example, if AZ us-east-1a is impaired, you tell ARC to shift traffic away from it.
+2. **Immediate Action**: ARC starts the zonal shift right away. The load balancer stops sending new traffic to targets in the affected AZ.
+3. **Handling In-Progress Connections**: Existing connections in the impaired AZ aren’t cut off instantly. It takes a few minutes (typically) to let those in-progress requests complete or timeout gracefully. This avoids abruptly dropping users mid-action.
+4. **Health Checks and IP Addresses**: Behind the scenes, ARC works with the load balancer’s health checks and zonal IP addresses. Each AZ has its own load balancer node with an IP address. When you shift traffic away, that node’s IP is effectively sidelined, and traffic reroutes to nodes in other AZs. For more technical details, the ARC Developer Guide explains how health checks and DNS updates play into this.
 
-## How ELB Works:
-ELB operates by distributing workloads across compute resources, such as virtual servers, to optimize performance and reliability. It employs configurable health checks to monitor the health of targets, ensuring that traffic is routed only to healthy resources. This is particularly important for maintaining application uptime, as unhealthy instances are automatically excluded from the traffic flow. ELB also offloads tasks like encryption and decryption to the load balancer, allowing compute resources to focus on core application tasks, which improves efficiency.
+### Where Zonal Shift Fits with Load Balancers
+Remember how a load balancer distributes traffic across nodes in enabled AZs? Zonal shift builds on that:
+- Normally, a load balancer sends traffic to healthy targets across all enabled AZs (or just its own AZ if cross-zone load balancing is off).
+- With zonal shift, you’re overriding that normal behavior for one AZ, telling the load balancer, “Don’t use this zone, even if it’s enabled.” Traffic then flows only to targets in the remaining healthy AZs.
 
-A load balancer is like a traffic manager for your servers. Its main job is to take incoming requests from clients (like web browsers or apps) and distribute them across a group of servers (called targets, such as Amazon EC2 instances) to ensure no single server gets overwhelmed. It also keeps an eye on the health of these servers and only sends traffic to the ones that are working properly. Here’s how it all comes together:
+### Key Details and Limitations
+Before you use zonal shift, there are some important things to know:
 
-### Core Functionality
-1. **Accepting Traffic**: The load balancer sits in front of your servers and acts as the entry point for all incoming client requests. You set it up by defining *listeners*, which are rules telling the load balancer what kind of traffic to expect (e.g., HTTP on port 80) and where to send it (e.g., to your servers on port 8080). A listener specifies the protocol (like HTTP or TCP) and port for both the client-to-load-balancer connection and the load-balancer-to-target connection.
+1. **Supported Load Balancers**:
+   - Works with *Network Load Balancers (NLBs)*, whether cross-zone load balancing is on or off. This flexibility is great because NLBs handle raw TCP/UDP traffic and are often used for high-performance setups.
+   - *Doesn’t work* with *Application Load Balancers (ALBs)* when they’re used as endpoints in AWS Global Accelerator. Global Accelerator manages traffic differently, and zonal shift isn’t compatible there.
 
-2. **Routing to Targets**: Once a request comes in, the load balancer forwards it to one of its registered targets. These targets are typically servers running in one or more *Availability Zones* (AZs), which are isolated locations within a data center region (e.g., us-east-1a, us-east-1b). The load balancer decides which target gets the request based on its configuration and routing rules.
+2. **Single AZ at a Time**:
+   - You can only shift traffic away from *one AZ* per action. If multiple AZs are impaired, you’d need separate zonal shifts for each. This keeps things precise but means you can’t blanket-shift an entire region at once.
 
-3. **Health Monitoring**: The load balancer constantly checks the health of its targets using health checks (e.g., pinging a specific endpoint like `/health`). If a target fails the health check (say, it’s down or unresponsive), the load balancer stops sending traffic to it. Once the target passes the health check again, traffic resumes. This ensures clients only interact with healthy servers.
+3. **Cross-Zone Load Balancing Impact**:
+   - If your NLB has *cross-zone load balancing on*, each node already sends traffic to targets across all AZs. A zonal shift just excludes the impaired AZ, and the remaining nodes pick up the slack evenly across their targets.
+   - If it’s *off*, each node only talks to targets in its own AZ. A zonal shift removes that AZ’s node entirely, and you lose its target capacity unless other AZs can handle the load. This is a big deal—check your capacity before shifting!
 
-### Availability Zones and Load Balancer Nodes
-- **Nodes in AZs**: When you enable an Availability Zone for your load balancer, a *load balancer node* is created in that AZ. Think of a node as a part of the load balancer that lives in that specific zone and handles traffic distribution. For example, if you enable two AZs, you get two nodes—one in each zone.
-- **Target Registration**: You also register your servers (targets) with the load balancer, specifying which AZ they’re in. If you register a target in an AZ but don’t enable that AZ for the load balancer, no traffic goes to that target because there’s no node to route it.
-- **High Availability**: For the load balancer to work effectively (and avoid downtime), you should enable multiple AZs. With an *Application Load Balancer* (ALB), you *must* enable at least two AZs—it’s a requirement. If one AZ goes down or has no healthy targets, the load balancer can still send traffic to targets in other AZs, keeping your service up and running.
-- **Disabling an AZ**: If you disable an AZ, the targets there stay registered, but they won’t get traffic because there’s no active node in that zone to handle requests.
+4. **AWS Proactive DNS Updates**:
+   - When AWS detects major issues in an AZ, it might automatically pull that zone’s load balancer IP addresses out of DNS. This overlaps with zonal shift but happens proactively. Either way, traffic stops hitting the bad AZ.
 
+5. **Nested Load Balancers**:
+   - If an ALB is a target of an NLB (a common setup for layering HTTP handling behind raw traffic management), you *must* start the zonal shift from the NLB. Why? The NLB controls the traffic flow. If you shift the ALB instead, the NLB won’t know and will keep sending traffic to the ALB in the impaired AZ, defeating the purpose.
 
+6. **Capacity Check**:
+   - Before shifting, ensure the remaining AZs have enough healthy targets to handle the traffic. If you shift away from an AZ with most of your capacity and the others can’t cope, you’ll overload them.
 
+### Example Scenario
+Let’s say you have an NLB with:
+- Three AZs: A (2 targets), B (3 targets), C (5 targets).
+- Cross-zone load balancing is on, so each of the 10 targets gets ~10% of the traffic.
+- AZ C starts failing (e.g., network outage).
 
+You start a zonal shift for AZ C:
+- The NLB stops sending traffic to AZ C’s 5 targets.
+- Traffic redistributes across AZ A and B (now 5 targets total).
+- Each target in A and B now handles ~20% of the traffic (100 ÷ 5).
+- After a few minutes, all connections in AZ C wrap up, and the shift is fully in effect.
 
+If cross-zone was *off*:
+- AZ C’s node (handling 33% of traffic) drops out.
+- AZ A and B nodes take over, but only for their own targets (2 in A, 3 in B), potentially unbalancing the load unless you’ve planned capacity.
+
+### Why It Matters
+Zonal shift is a lifeline for resilience. Instead of scrambling to manually reconfigure your load balancer or deploy new targets during an outage, you flip a switch in ARC, and traffic moves to safety. It’s fast, controlled, and leverages the load balancer’s existing smarts—like health checks and routing rules—to keep your app alive.
