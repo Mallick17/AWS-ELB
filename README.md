@@ -41,7 +41,8 @@ The "Details" section provides an overview of the target group’s configuration
   The absence of targets suggests this target group is either newly created, misconfigured, or not yet in use. To make it functional, you’d need to register EC2 instances (e.g., via the AWS Management Console or CLI: `aws elbv2 register-targets --target-group-arn <ARN> --targets Id=<instance-id>`).
 
 ## 2. Targets Tab
-The "Targets" tab (not fully shown but mentioned) would list the registered targets (EC2 instances in this case) and their health status. Since there are 0 targets, this tab would be empty. For an ALB target group with `instance` type:
+- Target groups route requests to individual registered targets using the protocol and port number specified. Health checks are performed on all registered targets according to the target group's health check settings. Anomaly detection is automatically applied to HTTP/HTTPS target groups with at least 3 healthy targets.
+- The "Targets" tab (not fully shown but mentioned) would list the registered targets (EC2 instances in this case) and their health status. Since there are 0 targets, this tab would be empty. For an ALB target group with `instance` type:
 - Targets are registered by instance ID.
 - Each target’s health status (healthy, unhealthy, initial, draining, etc.) is determined by health checks.
 - You can register targets manually or dynamically via Auto Scaling, which is useful for scaling web applications like `mallow-php-app`.
