@@ -35,6 +35,7 @@ An Application Load Balancer (ALB) is a Layer 7 (application layer) load balance
 - **Date Created**: April 2, 2025, 11:12 UTC.
 
 ### **2. Listeners and Rules Tab**
+A listener checks for connection requests on its configured protocol and port. Traffic received by the listener is routed according to the default action and any additional rules.
 - **Listener**: HTTP:80 (listens for HTTP traffic on port 80).
 - **Rules**: 1 rule, which forwards traffic to the `mallow-php-app` target group with 100% weight (all traffic goes to this group).
 - **Security Policy**: Not applicable (since this is HTTP, not HTTPS; HTTPS would require an SSL/TLS certificate and a security policy).
