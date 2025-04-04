@@ -1,180 +1,219 @@
 # **Application Load Balancer (ALB)**
-An Application Load Balancer (ALB) is a Layer 7 (application layer) load balancer provided by AWS Elastic Load Balancing (ELB) service. It distributes incoming HTTP/HTTPS traffic (or other Layer 7 protocols like WebSocket) across multiple targets, such as EC2 instances, containers, or Lambda functions, based on advanced routing rules. Unlike a Network Load Balancer (Layer 4) or Classic Load Balancer, an ALB is designed to handle HTTP/HTTPS traffic with features like content-based routing, path-based routing, and support for modern application architectures (e.g., microservices).
+An Application Load Balancer (ALB) is a Layer 7 (application layer) load balancer provided by AWS Elastic Load Balancing (ELB) service. It distributes incoming HTTP/HTTPS traffic (or other application-layer protocols like WebSocket) across multiple targets, such as EC2 instances, containers, or Lambda functions, based on advanced routing rules. ALBs are designed for modern applications with microservices architectures, offering features like content-based routing, WebSocket support, and integration with other AWS services.
 
 ### **Why Use an ALB?**
-1. **Scalability**: ALBs automatically scale to handle varying levels of traffic, ensuring your application remains responsive during traffic spikes.
-2. **High Availability**: By distributing traffic across multiple Availability Zones (AZs), ALBs improve fault tolerance. If one AZ fails, traffic is routed to healthy targets in other AZs.
-3. **Advanced Routing**: ALBs support routing based on URL paths, hostnames, HTTP headers, or query strings, making them ideal for microservices or multi-tenant applications.
-4. **Security**: ALBs integrate with AWS Web Application Firewall (WAF) for protection against common web exploits and support SSL/TLS termination for secure communication.
-5. **Monitoring and Observability**: ALBs provide detailed metrics and logs (e.g., via CloudWatch) to monitor application health and performance.
+1. **High Availability**: Distributes traffic across multiple targets in different Availability Zones (AZs) to ensure your application remains available even if one AZ fails.
+2. **Scalability**: Automatically scales to handle varying levels of traffic, ensuring performance during traffic spikes.
+3. **Advanced Routing**: Supports path-based, host-based, and other routing rules to direct traffic to specific target groups based on the request (e.g., `/api` to one group, `/web` to another).
+4. **Security**: Integrates with AWS services like Web Application Firewall (WAF) for protection and supports SSL termination/encryption.
+5. **Monitoring and Observability**: Provides metrics and logs for monitoring application health and performance.
 
 ### **How Does an ALB Work?**
-1. **Traffic Entry**: Clients (e.g., users’ browsers) send requests to the ALB via its DNS name (e.g., `mallow-vpc-lb-652465165.ap-south-1.elb.amazonaws.com`).
-2. **Listener**: The ALB uses listeners to receive incoming traffic on specific ports and protocols (e.g., HTTP on port 80, as seen in the "Listeners and rules" tab).
-3. **Rules**: Each listener has rules that determine how to route traffic. For example, a rule might forward traffic to a specific target group based on the URL path (e.g., `/api` to one target group, `/web` to another).
-4. **Target Groups**: These are collections of targets (e.g., EC2 instances) that handle the traffic. The ALB forwards requests to healthy targets within the group based on the routing rules.
-5. **Health Checks**: The ALB continuously monitors the health of targets using health checks. Unhealthy targets are excluded from receiving traffic until they recover.
-6. **Response**: After the target processes the request, the response is sent back through the ALB to the client.
+1. **Listeners**: ALBs use listeners to check for incoming connection requests. A listener is configured with a protocol (e.g., HTTP, HTTPS) and a port (e.g., 80, 443). In the screenshot, the ALB has a listener on HTTP:80.
+2. **Rules**: Each listener has rules that define how to route traffic. Rules can be based on the URL path, hostname, HTTP headers, etc. In the screenshot, the listener has a default rule to forward traffic to the `mallow-php-app` target group.
+3. **Target Groups**: These are logical groupings of targets (e.g., EC2 instances) that handle the traffic. Each target group can have its own health checks to ensure only healthy targets receive traffic. In the screenshot, the target group is `mallow-php-app`, but it currently has 0 targets registered.
+4. **Targets**: The actual resources (e.g., EC2 instances, Lambda functions) that process the requests. Targets are registered with a target group.
+5. **Health Checks**: ALBs periodically check the health of targets in a target group. If a target fails the health check, the ALB stops sending traffic to it until it becomes healthy again.
 
 ---
 
-### **Components of the ALB**
-#### **1. Details Tab**
-This tab provides an overview of the ALB’s configuration:
-- **Load Balancer Type**: Application (indicating it’s an ALB, operating at Layer 7).
-- **Scheme**: Internet-facing (the ALB is accessible from the public internet).
+## **Components of the ALB**
+
+### **1. Details Tab**
+- **Load Balancer Type**: Application (Layer 7, HTTP/HTTPS traffic).
+- **Scheme**: Internet-facing (accessible from the public internet).
+- **Status**: Active (the ALB is operational).
 - **Hosted Zone**: ZP97RAFLXTNZK (the Route 53 hosted zone for DNS).
-- **VPC**: `vpc-088e7a7bf4b68741b` (the Virtual Private Cloud where the ALB resides).
-- **Availability Zones**:
-  - `subnet-070aec83e8b9d487b` in `ap-south-1a` (aps1-az1).
-  - `subnet-0c4bf7a2535498ca02` in `ap-south-1b` (aps1-az3).
-  - This ensures the ALB can distribute traffic across two AZs for high availability.
-- **Load Balancer IP Address Type**: IPv4 (the ALB uses IPv4 addresses; IPv6 is not enabled).
-- **Date Created**: April 2, 2025, 11:12 UTC.
-- **Load Balancer ARN**: A unique identifier for the ALB (`arn:aws:elasticloadbalancing:ap-south-1:3539713104321:loadbalancer/app/mallow-vpc-lb/a223c390bd3ed397`).
-- **DNS Name**: `mallow-vpc-lb-652465165.ap-south-1.elb.amazonaws.com` (the public DNS name clients use to access the ALB).
-
-**Purpose**: This tab gives a high-level summary of the ALB’s configuration, including its network placement and accessibility.
-
----
-
-#### **2. Listeners and Rules Tab**
-- **Listener**: HTTP:80 (the ALB listens for HTTP traffic on port 80).
-- **Default Action**: Forward to target group `mallow-php-app` (100% of traffic is sent to this target group by default).
-- **Rules**: 1 rule (the default rule forwards traffic to the target group).
-- **Security Policy, SSL/TLS Certificate, TLS**: Not applicable (since this listener is HTTP, not HTTPS; HTTPS would require a certificate and security policy).
-
-**Purpose**: Listeners define how the ALB accepts incoming traffic, and rules determine how that traffic is routed. Here, all HTTP traffic on port 80 is forwarded to the `mallow-php-app` target group.
-
----
-
-#### **3. Network Mapping Tab**
-- **VPC**: `vpc-088e7a7bf4b68741b` (same as in the Details tab).
-- **Load Balancer IP Address Type**: IPv4 (consistent with the Details tab).
+- **VPC**: vpc-088e7a7bf4b68741b (the Virtual Private Cloud where the ALB resides).
 - **Availability Zones and Subnets**:
-  - `ap-south-1a` (aps1-az1): `subnet-070aec83e8b9d487b` with private IPv4 CIDR 10.0.1.0/24.
-  - `ap-south-1b` (aps1-az3): `subnet-0c4bf7a2535498ca02` with private IPv4 CIDR 10.0.2.0/24.
-- **IPv6 Address**: Not applicable (IPv6 is not enabled).
+  - `ap-south-1a (aps1-az1)`: subnet-070aec83e8b9d487b
+  - `ap-south-1b (aps1-az3)`: subnet-0c4bf7a2535498ca02
+  These subnets are in different AZs for high availability.
+- **Load Balancer ARN**: A unique identifier for the ALB.
+- **DNS Name**: mallow-vpc-lb-652465165.ap-south-1.elb.amazonaws.com (the public DNS name for accessing the ALB).
+- **Load Balancer IP Address Type**: IPv4 (supports IPv4 traffic; IPv6 is disabled).
+- **Date Created**: April 2, 2025, 11:12 UTC.
 
-**Purpose**: This tab shows the network configuration, including the subnets where the ALB operates. The ALB needs at least two subnets in different AZs for high availability. The private IPv4 addresses indicate the ALB’s internal network placement within the VPC.
+### **2. Listeners and Rules Tab**
+- **Listener**: HTTP:80 (listens for HTTP traffic on port 80).
+- **Rules**: 1 rule, which forwards traffic to the `mallow-php-app` target group with 100% weight (all traffic goes to this group).
+- **Security Policy**: Not applicable (since this is HTTP, not HTTPS; HTTPS would require an SSL/TLS certificate and a security policy).
+- **Default SSL/TLS Certificate**: Not applicable (no HTTPS listener).
+- **TLS**: Not applicable (no HTTPS listener).
+- **Test Store**: Not applicable (used for mutual TLS, not configured here).
 
----
+### **3. Network Mapping Tab**
+- **VPC**: vpc-088e7a7bf4b68741b (same as in Details).
+- **Load Balancer IP Address Type**: IPv4.
+- **IP Pools**: None (not using specific IP address pools).
+- **Availability Zones and Subnets**:
+  - `ap-south-1a`: subnet-070aec83e8b9d487b (CIDR: 10.0.1.0/24)
+  - `ap-south-1b`: subnet-0c4bf7a2535498ca02 (CIDR: 10.0.2.0/24)
+  - IPv6 Address: Not applicable (IPv6 is disabled).
 
-#### **4. Resource Map Tab**
-- **Listeners**: HTTP:80.
-- **Rules**: 1 rule (forward to target group).
-- **Target Groups**: `mallow-php-app` (the target group receiving traffic).
-- **Targets**: 0 targets (no instances are currently registered with the target group).
+### **4. Resource Map Tab**
+- **Overview**: Shows the ALB (`mallow-vpc-lb`), its listener (HTTP:80), rule (forward to target group), and target group (`mallow-php-app`).
+- **Target Group**: `mallow-php-app` (0 targets registered, 0 healthy, 0 unhealthy, 0 draining, 0 unused).
 
-**Purpose**: This tab provides a visual representation of the ALB’s traffic flow: from the listener to the target group. The lack of targets suggests the ALB is either not fully configured or the instances are not registered yet.
-
----
-
-#### **5. Security Tab**
+### **5. Security Tab**
 - **Security Groups**:
-  - `sg-0f4890a5c627b1d71` (default VPC security group).
-  - `sg-0c4bf7a253e0f8be01` (named `php-lb-sg`, a custom security group for the load balancer).
+  - `sg-0f4890a56207b1d1` (default): Default VPC security group.
+  - `sg-0df4758e208f0b8e1` (php-lb-sg): Security group for the load balancer.
+- **Security Groups Role**: Security Groups control the traffic to the ALB (inbound rules) and from the ALB to the targets (outbound rules). As discussed earlier, Security Groups are stateful, meaning they automatically allow return traffic for allowed connections.
 
-**Purpose**: Security Groups (SGs) control the traffic allowed to and from the ALB. As discussed in your previous question, SGs are stateful, meaning they automatically allow return traffic for allowed inbound connections. For example, if `php-lb-sg` allows inbound HTTP on port 80, the response traffic is automatically permitted. You’d need to check the rules of these SGs to see the specific ports and sources allowed (e.g., 0.0.0.0/0 for public access on port 80).
+### **6. Monitoring Tab**
+- **Metrics**:
+  - **Target Response Time**: No data (no targets registered).
+  - **Requests**: No data.
+  - **Rule Evaluations**: No data.
+  - **Target 5XXs, 4XXs, ELB 5XXs, 4XXs**: No data (no traffic or targets).
+  - **Target Connection Errors**: No data.
+  - **Sum Rejected Connection Count**: No data.
+  - **Target TLS Negotiation Errors**: No data.
+  - **Client TLS Negotiation Errors**: No data.
+  - **Target 3XXs, 2XXs**: No data.
+  - **Active Connections**: 4 active connections (some traffic is hitting the ALB, but no targets are processing it).
 
-**Note**: The ALB is in a VPC, and NACLs (stateless) would also apply at the subnet level (e.g., for `subnet-070aec83e8b9d487b`). However, NACLs are not shown in the ALB console—they’re managed separately at the VPC level. NACLs would require explicit inbound and outbound rules for traffic to flow, as they don’t track connection state.
+### **7. Integrations Tab**
+- **Amazon Application Recovery Controller (ARC)**: Not integrated (optimizes availability).
+- **Amazon CloudFront + AWS WAF**: Not integrated (optimizes performance, availability, and security).
+- **AWS Global Accelerator**: Not integrated (optimizes performance and availability).
+- **AWS Config**: Not integrated (optimizes monitoring and compliance).
+- **AWS WAF**: Not integrated (optimizes security).
 
----
-
-#### **6. Monitoring Tab**
-This tab shows CloudWatch metrics for the ALB:
-- **Target Response Time**: No data (indicating no traffic or targets).
-- **Requests**: No data.
-- **Rule Evaluations**: No data.
-- **Target 5XXs, 4XXs, ELB 5XXs, 4XXs**: No data (no errors recorded).
-- **ELB 503s, 502s, 504s**: No data (no gateway errors).
-- **Target Connection Errors**: No data.
-- **Sum Rejected Connection Count**: No data.
-- **Target TLS Negotiation Errors**: No data.
-- **Client TLS Negotiation Errors**: No data.
-- **Target 3XXs, 2XXs**: No data.
-- **Active Connection Count**: 4 connections (some minimal activity, possibly health checks).
-
-**Purpose**: This tab helps monitor the ALB’s performance and health. The lack of data suggests the ALB isn’t receiving significant traffic, likely because no targets are registered. The 4 active connections might be from health checks or test traffic.
-
----
-
-#### **7. Integrations Tab**
-- **Amazon Application Recovery Controller (ARC)**: Not integrated.
-- **Amazon CloudFront + AWS WAF**: Not integrated.
-- **AWS Global Accelerator**: Not integrated.
-- **AWS Config**: Not integrated.
-- **AWS WAF**: Not integrated.
-
-**Purpose**: This tab shows potential integrations with other AWS services to enhance the ALB’s functionality (e.g., WAF for security, Global Accelerator for performance). None are enabled here, so the ALB operates without these additional features.
-
----
-
-#### **8. Attributes Tab**
-- **TLS Version and Cipher Headers**: Off.
-- **WAF Fail Open**: Off (if WAF were enabled, this would determine behavior on WAF failure).
-- **HTTP/2**: On (the ALB supports HTTP/2 for better performance).
-- **Connection Idle Timeout**: 60 seconds (if no data is sent for 60 seconds, the connection is closed).
-- **HTTP Client Keepalive Duration**: 3600 seconds (1 hour; keeps connections alive for reuse).
+### **8. Attributes Tab**
+- **TLS Version and Cipher Headers**: Off (not applicable for HTTP).
+- **WAF Fail Open**: Off (not applicable since WAF is not integrated).
+- **HTTP/2**: On (supports HTTP/2 for better performance).
+- **Connection Idle Timeout**: 60 seconds (closes idle connections after 60 seconds).
+- **HTTP Client Keepalive Duration**: 3600 seconds (keeps connections alive for 1 hour).
 - **Packet Handling**:
   - **Desync Mitigation Mode**: Defensive (protects against HTTP desync attacks).
-  - **Drop Invalid Header Fields**: Off (invalid headers are not dropped).
-  - **X-Forwarded-For Header**: Append (the ALB appends the client’s IP to the X-Forwarded-For header).
-  - **Client Port Preservation**: Off (the client’s source port is not preserved).
+  - **Drop Invalid Header Fields**: Off (does not drop requests with invalid headers).
+  - **X-Forwarded-For Header**: Append (adds the client’s IP to the X-Forwarded-For header).
+  - **Client Port Preservation**: Off (does not preserve the client’s source port).
 - **Availability Zone Routing Configuration**:
-  - **Cross-Zone Load Balancing**: On (traffic is distributed across all AZs, not just within the same AZ as the request).
-  - **ARC Zonal Shift Integration**: Disabled.
-- **Deletion Protection**: Off (the ALB can be deleted without extra confirmation).
-- **Access Logs**: Off (access logs are not being stored in S3).
-- **Connection Logs**: Off (detailed connection logs are not enabled).
+  - **Cross-Zone Load Balancing**: On (distributes traffic evenly across all AZs).
+  - **ARC Zonal Shift Integration**: Disabled (not using ARC for zonal shifts).
+- **Protection**:
+  - **Deletion Protection**: Off (ALB can be deleted without restriction).
+- **Monitoring**:
+  - **Access Logs**: Off (not logging requests to S3).
+  - **Connection Logs**: Off (not logging connection details).
 
-**Purpose**: This tab configures the ALB’s behavior, such as how it handles connections, security features, and logging. For example, enabling HTTP/2 improves performance, while the connection idle timeout ensures resources aren’t wasted on inactive connections.
+### **9. Capacity Tab**
+- **Load Balancer Capacity Unit (LCU) Reservation**: 2 LCUs reserved until 00:00 UTC (ensures capacity during traffic spikes).
+- **LCU Usage**: Graph shows peak LCU usage (red) vs. reserved LCU (green). Currently, usage is low.
 
----
-
-#### **9. Capacity Tab**
-- **Load Balancer Capacity Unit (LCU) Reservation**: 2 LCUs reserved until 00:00 UTC (decreases remaining today).
-- **Load Balancer Capacity Units (LCU) Peak vs. Reserved**: A graph showing peak LCU usage (red) vs. reserved LCUs (green). Currently, no significant usage is shown.
-
-**Purpose**: LCUs measure the ALB’s resource consumption (e.g., connections, requests, bandwidth). Reserving LCUs ensures capacity during traffic spikes. The lack of usage aligns with the absence of targets and traffic.
-
----
-
-#### **10. Tags Tab**
-- **Tags**: 0 (no tags are associated with the ALB).
-
-**Purpose**: Tags are key-value pairs used for resource management (e.g., cost allocation, organization). None are set here.
+### **10. Tags Tab**
+- No tags are associated with the ALB.
 
 ---
 
-### **How the ALB is Used in This Setup**
-- **Current Configuration**:
-  - The ALB (`mallow-vpc-lb`) is internet-facing and listens for HTTP traffic on port 80.
-  - It forwards all traffic to the `mallow-php-app` target group, but no targets (e.g., EC2 instances) are registered, so no traffic is being processed.
-  - It operates across two AZs (`ap-south-1a` and `ap-south-1b`) for high availability.
-  - Security Groups (`php-lb-sg` and the default SG) control inbound traffic, likely allowing HTTP on port 80.
-  - Cross-zone load balancing is enabled, ensuring even traffic distribution across AZs.
-  - HTTP/2 is enabled for better performance, but HTTPS is not configured (no SSL/TLS).
-
-- **Intended Use**:
-  - This ALB is likely meant to distribute traffic to a PHP application (`mallow-php-app`), possibly running on EC2 instances.
-  - The lack of targets suggests the setup is incomplete—EC2 instances need to be registered with the target group, and health checks need to pass for the ALB to route traffic.
-  - Once configured, the ALB would:
-    1. Receive HTTP requests from clients.
-    2. Apply Security Group rules to allow/deny traffic.
-    3. Forward requests to healthy instances in the `mallow-php-app` target group.
-    4. Return responses to clients, leveraging HTTP/2 for efficiency.
-
-- **Potential Improvements**:
-  - Enable HTTPS by adding a listener on port 443 with an SSL/TLS certificate (e.g., via AWS Certificate Manager).
-  - Register EC2 instances with the target group and configure health checks.
-  - Enable access logs for troubleshooting and auditing.
-  - Integrate with AWS WAF for security if the application is exposed to the public internet.
-  - Add tags for better resource management.
+### **How the ALB is Currently Used**
+- The ALB (`mallow-vpc-lb`) is set up to handle HTTP traffic on port 80 and forward it to the `mallow-php-app` target group.
+- It’s deployed in two Availability Zones (`ap-south-1a` and `ap-south-1b`) for high availability.
+- Cross-zone load balancing is enabled, ensuring traffic is distributed evenly across AZs.
+- Security Groups are applied to control traffic, but no targets are registered in the target group, so the ALB isn’t processing any traffic effectively (despite 4 active connections).
+- No advanced integrations (e.g., WAF, CloudFront) or monitoring (e.g., access logs) are enabled.
 
 ---
 
-### **Summary**
-The Application Load Balancer (`mallow-vpc-lb`) is a Layer 7 load balancer designed to distribute HTTP/HTTPS traffic across multiple targets. It’s used to improve scalability, availability, and performance for web applications. In this setup, it’s partially configured to handle HTTP traffic for a PHP application but lacks registered targets, so it’s not fully operational. The various tabs (Details, Listeners and Rules, Security, etc.) provide a comprehensive view of its configuration, allowing you to fine-tune its behavior for your application’s needs.
+## **What Happens if All Integrations and Configurations Are Enabled?**
 
-Let me know if you’d like to dive deeper into any specific component!
+### **Integrations**
+1. **Amazon Application Recovery Controller (ARC)**:
+   - **What it does**: ARC helps manage and recover applications during outages by enabling zonal shifts (rerouting traffic away from a failing AZ).
+   - **If enabled**: The ALB would integrate with ARC, allowing automated zonal shifts if one AZ (`ap-south-1a` or `ap-south-1b`) fails. Traffic would be rerouted to the healthy AZ, improving availability.
+   - **Impact**: Better resilience during AZ outages, but requires ARC setup and configuration.
+
+2. **Amazon CloudFront + AWS WAF**:
+   - **What it does**: CloudFront is a CDN that caches content globally, reducing latency. AWS WAF (Web Application Firewall) protects against common web attacks (e.g., SQL injection, XSS).
+   - **If enabled**:
+     - **CloudFront**: The ALB would sit behind CloudFront, which would cache static content and reduce latency for global users. Requests would hit CloudFront first, then the ALB for dynamic content.
+     - **WAF**: WAF rules would filter malicious traffic before it reaches the ALB, blocking attacks like SQL injection or DDoS.
+   - **Impact**: Improved performance (via CloudFront) and security (via WAF). WAF fail-open (currently off) could be enabled to allow traffic if WAF fails, but this might reduce security.
+
+3. **AWS Global Accelerator**:
+   - **What it does**: Global Accelerator routes traffic over the AWS global network, improving performance and availability by directing users to the nearest healthy endpoint.
+   - **If enabled**: The ALB would be accessible via Global Accelerator, which would route traffic to the closest AZ (`ap-south-1a` or `ap-south-1b`) using anycast IP addresses. It would also provide failover if one AZ fails.
+   - **Impact**: Faster and more reliable access for global users, with automatic failover.
+
+4. **AWS Config**:
+   - **What it does**: AWS Config tracks configuration changes and compliance for AWS resources.
+   - **If enabled**: AWS Config would monitor the ALB’s configuration (e.g., listener rules, security groups) and alert on non-compliant changes (e.g., if deletion protection is disabled).
+   - **Impact**: Better governance and auditing, but requires setting up Config rules.
+
+5. **AWS WAF (Standalone)**:
+   - **What it does**: Protects the ALB from web attacks (already covered with CloudFront + WAF, but can be standalone).
+   - **If enabled**: WAF would filter traffic directly at the ALB level, blocking malicious requests.
+   - **Impact**: Enhanced security, but requires WAF rule configuration.
+
+### **Configurations**
+1. **TLS Version and Cipher Headers**: Currently off (not applicable for HTTP).
+   - **If enabled**: Requires an HTTPS listener (port 443) with an SSL/TLS certificate. This would enforce specific TLS versions (e.g., TLS 1.2, 1.3) and ciphers for secure connections.
+   - **Impact**: Secures traffic with encryption, but requires a certificate (e.g., via AWS Certificate Manager) and an HTTPS listener.
+
+2. **WAF Fail Open**: Currently off.
+   - **If enabled**: If WAF fails to process a request, traffic would still reach the ALB (fail-open behavior).
+   - **Impact**: Ensures availability during WAF failures, but might allow malicious traffic through.
+
+3. **HTTP/2**: Already on.
+   - **Impact**: Improves performance by allowing multiplexing (multiple requests over a single connection).
+
+4. **Connection Idle Timeout**: 60 seconds.
+   - **If adjusted**: Increasing this (e.g., to 300 seconds) would keep idle connections open longer, useful for applications with long-lived connections (e.g., WebSockets).
+   - **Impact**: More resource usage on the ALB, but better for certain workloads.
+
+5. **HTTP Client Keepalive Duration**: 3600 seconds.
+   - **If adjusted**: Reducing this (e.g., to 300 seconds) would close keepalive connections sooner, freeing resources.
+   - **Impact**: Balances resource usage vs. performance.
+
+6. **Packet Handling**:
+   - **Desync Mitigation Mode**: Already defensive (protects against HTTP desync attacks).
+   - **Drop Invalid Header Fields**: Currently off.
+     - **If enabled**: Requests with invalid headers would be dropped, improving security.
+     - **Impact**: Might break some legitimate traffic if clients send malformed headers.
+   - **X-Forwarded-For Header**: Already append (preserves client IP).
+   - **Client Port Preservation**: Currently off.
+     - **If enabled**: Preserves the client’s source port, useful for certain applications.
+     - **Impact**: More resource usage on the ALB.
+
+7. **Availability Zone Routing**:
+   - **Cross-Zone Load Balancing**: Already on (distributes traffic across AZs).
+   - **ARC Zonal Shift Integration**: Currently disabled.
+     - **If enabled**: Works with ARC to shift traffic during AZ failures.
+     - **Impact**: Improves availability.
+
+8. **Protection**:
+   - **Deletion Protection**: Currently off.
+     - **If enabled**: Prevents accidental deletion of the ALB.
+     - **Impact**: Adds safety, but might hinder automation scripts that delete resources.
+
+9. **Monitoring**:
+   - **Access Logs**: Currently off.
+     - **If enabled**: Logs all requests to an S3 bucket, useful for auditing and debugging.
+     - **Impact**: Increases storage costs and requires S3 bucket setup.
+   - **Connection Logs**: Currently off.
+     - **If enabled**: Logs connection details (e.g., source IP, port), useful for troubleshooting.
+     - **Impact**: More detailed monitoring, but increases logging overhead.
+
+---
+
+### **Summary of Impact if All Integrations and Configurations Are Enabled**
+- **Performance**: CloudFront and Global Accelerator would reduce latency and improve global access. HTTP/2 (already on) ensures efficient connections.
+- **Availability**: ARC and Global Accelerator would improve failover and recovery during AZ outages. Cross-zone load balancing (already on) ensures even traffic distribution.
+- **Security**: WAF (with CloudFront or standalone) would protect against attacks. Enabling TLS (with HTTPS) would encrypt traffic. Deletion protection would prevent accidental deletion.
+- **Monitoring**: Access logs, connection logs, and AWS Config would provide detailed auditing and compliance tracking.
+- **Trade-offs**: Increased complexity (more services to manage), higher costs (e.g., WAF, CloudFront, S3 logging), and potential for misconfiguration (e.g., overly strict WAF rules blocking legitimate traffic).
+
+---
+
+### **Current Issues and Recommendations**
+- **No Targets Registered**: The `mallow-php-app` target group has 0 targets, so the ALB isn’t forwarding traffic to any instances. Register EC2 instances or other targets to make the ALB functional.
+- **HTTP Only**: The ALB uses HTTP:80, which is insecure. Add an HTTPS:443 listener with an SSL/TLS certificate for encryption.
+- **No WAF**: Enable WAF to protect against web attacks, especially since this is an internet-facing ALB.
+- **No Access Logs**: Enable access logs for auditing and troubleshooting.
+- **Integrations**: Consider enabling CloudFront + WAF and Global Accelerator for better performance and security.
+
+Let me know if you’d like to dive deeper into any specific component or configuration!
