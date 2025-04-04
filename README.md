@@ -44,10 +44,13 @@ A listener checks for connection requests on its configured protocol and port. T
 - **Test Store**: Not applicable (used for mutual TLS, not configured here).
 
 ### **3. Network Mapping Tab**
+Targets in the listed zones and subnets are available for traffic from the load balancer using the IP addresses shown.
 - **VPC**: vpc-088e7a7bf4b68741b (same as in Details).
 - **Load Balancer IP Address Type**: IPv4.
 - **IP Pools**: None (not using specific IP address pools).
 - **Availability Zones and Subnets**:
+
+Including two or more Availability Zones, and corresponding subnets, increases the fault tolerance of your applications.
   - `ap-south-1a`: subnet-070aec83e8b9d487b (CIDR: 10.0.1.0/24)
   - `ap-south-1b`: subnet-0c4bf7a2535498ca02 (CIDR: 10.0.2.0/24)
   - IPv6 Address: Not applicable (IPv6 is disabled).
