@@ -40,9 +40,9 @@ Load balancers enhance availability by distributing traffic, improve scalability
 
 - This table highlights the diversity, with ALB for application-level routing and NLB for network-level performance, GLB for appliances, and CLB for legacy needs.
 
-#### Console Options for Creating a Load Balancer: Detailed Exploration
+## Console Options for Creating a Load Balancer: Detailed Exploration
 
-**Overview:**
+### **Overview:**
 When creating a load balancer in the AWS Management Console, the options vary by type (ALB, NLB, GLB, CLB), but generally include naming, network configuration, security, listeners, target groups, and advanced settings. The following details are based on the creation process for ALB, with notes for other types.
 
 **Steps and Options:**
