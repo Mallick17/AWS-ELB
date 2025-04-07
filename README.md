@@ -15,6 +15,16 @@ An Application Load Balancer (ALB) is a Layer 7 (application layer) load balance
 4. **Targets**: The actual resources (e.g., EC2 instances, Lambda functions) that process the requests. Targets are registered with a target group.
 5. **Health Checks**: ALBs periodically check the health of targets in a target group. If a target fails the health check, the ALB stops sending traffic to it until it becomes healthy again.
 
+### **Practical Example:**
+Create a target group for an ALB:
+- Open the EC2 console at [https://console.aws.amazon.com/ec2/](https://console.aws.amazon.com/ec2/).
+- Navigate to Target Groups, choose Create target group.
+- Set Target type to Instances, Name to "WebServers", Protocol to HTTP, Port to 80, VPC to your network.
+- Configure health checks: Protocol HTTP, Path "/health", Port 80, Healthy threshold 3, Unhealthy threshold 2, Timeout 5 seconds, Interval 30 seconds.
+- Register EC2 instances, choose Create.
+
+This ensures the load balancer routes HTTP traffic to healthy web servers, monitored by health checks.
+
 ---
 
 ## **Components of the ALB**
