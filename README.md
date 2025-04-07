@@ -38,6 +38,43 @@ Load balancers enhance availability by distributing traffic, improve scalability
 | Gateway (GLB)      | 3     | GENEVE              | Virtual appliances, traffic inspection | Network security |
 | Classic (CLB)      | 4, 7  | HTTP, HTTPS, TCP, SSL | Basic load balancing | Legacy applications |
 
+<details>
+   <summary>Quick Guide of Load Balancers & Their Use Cases</summary>
+
+#### Types of Load Balancers and Their Uses: Comprehensive Overview
+
+**What is Load Balancing?**
+Load balancing is the process of distributing network traffic across multiple resources to ensure no single server is overwhelmed, improving responsiveness and availability. AWS ELB facilitates this by acting as a traffic manager, routing requests to registered targets based on health and configuration.
+
+**Types of Load Balancers:**
+AWS offers four types, each operating at different layers of the OSI model and serving distinct use cases:
+
+1. **Application Load Balancer (ALB):**
+   - **Layer:** 7 (Application Layer, HTTP/HTTPS)
+   - **Features:** Advanced request routing based on content (path, host, HTTP headers), WebSocket and HTTP/2 support, integration with AWS WAF, and Lambda targets.
+   - **Use Cases:** Web applications, microservices, containerized applications, and scenarios requiring content-based routing. For example, route "/api/*" to one set of instances and "/web/*" to another.
+   - **Performance:** Handles millions of requests, with low latency for HTTP/HTTPS traffic, suitable for modern, scalable architectures.
+
+2. **Network Load Balancer (NLB):**
+   - **Layer:** 4 (Transport Layer, TCP/UDP)
+   - **Features:** High performance, low latency, static IP addresses per Availability Zone, preservation of source IP, and support for TCP, UDP, TLS traffic.
+   - **Use Cases:** High-throughput, low-latency applications like gaming, streaming, IoT, and financial trading platforms. For instance, distribute TCP traffic for a gaming server across multiple instances.
+   - **Performance:** Handles millions of requests per second, with sub-millisecond latency, ideal for extreme performance needs.
+
+3. **Gateway Load Balancer (GLB):**
+   - **Layer:** 3 (Network Layer, GENEVE protocol)
+   - **Features:** Transparent traffic inspection, scaling and management of third-party virtual appliances like firewalls, intrusion detection systems, and deep packet inspection tools.
+   - **Use Cases:** Network security and monitoring, deploying virtual appliances in a scalable manner. For example, route traffic through a firewall appliance before reaching application servers.
+   - **Performance:** Designed for high-volume network traffic, with integration for appliance management.
+
+4. **Classic Load Balancer (CLB):**
+   - **Layer:** Both 4 and 7 (Legacy, supports HTTP/HTTPS, TCP/SSL)
+   - **Features:** Basic load balancing, direct instance registration, health checks, and stickiness.
+   - **Use Cases:** Legacy applications built within EC2-Classic or simple load balancing needs. For example, older web applications not requiring advanced routing.
+   - **Performance:** Less feature-rich than ALB and NLB, with AWS recommending migration for new applications ([Migrate your Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-migration.html)).
+   
+</details>
+
 - This table highlights the diversity, with ALB for application-level routing and NLB for network-level performance, GLB for appliances, and CLB for legacy needs.
 
 ## Console Options for Creating a Load Balancer: Detailed Exploration
