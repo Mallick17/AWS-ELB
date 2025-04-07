@@ -26,6 +26,20 @@ A load balancer is like a traffic manager for your servers. Its main job is to t
 - **High Availability**: For the load balancer to work effectively (and avoid downtime), you should enable multiple AZs. With an *Application Load Balancer* (ALB), you *must* enable at least two AZs—it’s a requirement. If one AZ goes down or has no healthy targets, the load balancer can still send traffic to targets in other AZs, keeping your service up and running.
 - **Disabling an AZ**: If you disable an AZ, the targets there stay registered, but they won’t get traffic because there’s no active node in that zone to handle requests.
 
+### Why Use Load Balancers?
+Load balancers enhance availability by distributing traffic, improve scalability by adding capacity, and ensure fault tolerance by routing around unhealthy targets. They are critical for high-traffic applications, supporting DevOps goals of automation and resilience.
+
+### Comparative Table
+
+| Load Balancer Type | Layer | Protocols Supported | Key Features | Primary Use Cases |
+|--------------------|-------|---------------------|--------------|-------------------|
+| Application (ALB)  | 7     | HTTP, HTTPS         | Content-based routing, WAF, Lambda | Web apps, microservices |
+| Network (NLB)      | 4     | TCP, UDP, TLS       | High performance, static IPs | Gaming, streaming, IoT |
+| Gateway (GLB)      | 3     | GENEVE              | Virtual appliances, traffic inspection | Network security |
+| Classic (CLB)      | 4, 7  | HTTP, HTTPS, TCP, SSL | Basic load balancing | Legacy applications |
+
+- This table highlights the diversity, with ALB for application-level routing and NLB for network-level performance, GLB for appliances, and CLB for legacy needs.
+
 
 
 
